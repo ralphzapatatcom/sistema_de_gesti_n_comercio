@@ -1,0 +1,1170 @@
+<!DOCTYPE html>
+<html lang="es" class="h-full bg-slate-50">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Gestión Comercial com.trade</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Phosphor Icons for UI -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <!-- Inter Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    </style>
+</head>
+<body class="h-full flex flex-col antialiased text-slate-800 bg-slate-100 overflow-hidden">
+
+    <!-- Toast Notification Container -->
+    <div id="toast-container" class="fixed top-5 right-5 z-50 flex flex-col gap-3 max-w-md w-full pointer-events-none"></div>
+
+    <!-- Application Top Bar -->
+    <header class="bg-slate-900 text-white h-16 flex items-center justify-between px-6 shadow-md z-20 flex-shrink-0">
+        <div class="flex items-center space-x-3">
+            <div class="bg-sky-600 p-2 rounded-lg flex items-center justify-center text-white">
+                <i class="ph ph-storefront text-2xl"></i>
+            </div>
+            <div>
+                <h1 class="font-bold text-lg leading-tight tracking-wide">com.trade <span class="text-xs bg-sky-900 text-sky-300 px-2 py-0.5 rounded-full font-normal border border-sky-700">v2.4 ACID</span></h1>
+                <p class="text-xs text-slate-400">Sistema de Gestión Comercial e Inventarios</p>
+            </div>
+        </div>
+
+        <!-- Cash Register Status Badge & User Info -->
+        <div class="flex items-center space-x-6">
+            <div id="status-caja-badge" class="flex items-center space-x-2 bg-red-950/80 border border-red-800 text-red-300 px-3 py-1.5 rounded-full text-xs font-semibold">
+                <span class="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse"></span>
+                <span id="status-caja-text">Caja Cerrada</span>
+            </div>
+            <div class="flex items-center space-x-3 border-l border-slate-700 pl-6">
+                <div class="text-right hidden sm:block">
+                    <p class="text-xs font-medium text-slate-200" id="current-user-name">Admin User</p>
+                    <p class="text-[10px] text-slate-400 uppercase tracking-wider font-semibold">Rol: Administrador</p>
+                </div>
+                <div class="w-9 h-9 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-slate-300 font-bold">
+                    AU
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div class="flex flex-1 overflow-hidden">
+
+        <!-- Sidebar Navigation -->
+        <aside class="w-64 bg-slate-800 text-slate-300 flex flex-col flex-shrink-0 border-r border-slate-700">
+            <nav class="flex-1 p-4 space-y-1.5 overflow-y-auto">
+                <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-3 mb-2">Módulos del Sistema</div>
+                
+                <button onclick="switchTab('pos')" id="nav-pos" class="nav-btn w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl font-medium text-sm transition-all bg-sky-600 text-white shadow-sm">
+                    <i class="ph ph-shopping-cart text-lg"></i>
+                    <span>Punto de Venta (POS)</span>
+                </button>
+
+                <button onclick="switchTab('inventario')" id="nav-inventario" class="nav-btn w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl font-medium text-sm transition-all hover:bg-slate-700/60 hover:text-white">
+                    <i class="ph ph-package text-lg"></i>
+                    <span>Inventario y Entradas</span>
+                </button>
+
+                <button onclick="switchTab('productos')" id="nav-productos" class="nav-btn w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl font-medium text-sm transition-all hover:bg-slate-700/60 hover:text-white">
+                    <i class="ph ph-barcode text-lg"></i>
+                    <span>Catálogo Productos</span>
+                </button>
+
+                <button onclick="switchTab('arqueo')" id="nav-arqueo" class="nav-btn w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl font-medium text-sm transition-all hover:bg-slate-700/60 hover:text-white">
+                    <i class="ph ph-currency-dollar text-lg"></i>
+                    <span>Arqueo de Caja</span>
+                </button>
+
+                <button onclick="switchTab('reportes')" id="nav-reportes" class="nav-btn w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl font-medium text-sm transition-all hover:bg-slate-700/60 hover:text-white">
+                    <i class="ph ph-chart-line-up text-lg"></i>
+                    <span>Reportes y Auditoría</span>
+                </button>
+            </nav>
+
+            <!-- Bottom System Info -->
+            <div class="p-4 border-t border-slate-700/80 bg-slate-800/50 text-xs text-slate-400">
+                <div class="flex items-center justify-between mb-1">
+                    <span>MariaDB Local:</span>
+                    <span class="text-emerald-400 font-medium flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> Conectado</span>
+                </div>
+                <div class="text-[11px] text-slate-500">BD: sistema_comercio</div>
+            </div>
+        </aside>
+
+        <!-- Main Workspace Container -->
+        <main class="flex-1 overflow-y-auto bg-slate-100 p-6 relative custom-scrollbar">
+
+            <!-- TAB 1: POS / PUNTO DE VENTA -->
+            <section id="tab-pos" class="tab-content h-full flex flex-col space-y-4">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h2 class="text-xl font-bold text-slate-800">VentaFrame - Punto de Venta</h2>
+                        <p class="text-xs text-slate-500">Registro atómico de ventas con comprobación estricta de stock disponible</p>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 flex-1 min-h-0">
+                    
+                    <!-- Left: Catalog & Selector (7 cols) -->
+                    <div class="lg:col-span-7 flex flex-col space-y-4 min-h-0">
+                        <!-- Search & Category Bar -->
+                        <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex flex-col sm:flex-row gap-3">
+                            <div class="relative flex-1">
+                                <i class="ph ph-magnifying-glass absolute left-3 top-3 text-slate-400 text-lg"></i>
+                                <input type="text" id="pos-search" oninput="renderPosProducts()" placeholder="Buscar por código de barras o nombre..." class="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-sky-500">
+                            </div>
+                            <select id="pos-category-filter" onchange="renderPosProducts()" class="bg-slate-50 border border-slate-200 text-slate-700 text-sm rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-sky-500">
+                                <option value="ALL">Todas las Categorías</option>
+                            </select>
+                        </div>
+
+                        <!-- Product Grid Container -->
+                        <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex-1 overflow-y-auto custom-scrollbar">
+                            <div id="pos-product-grid" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
+                                <!-- Generated by JS -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right: Cart & Transaction Checkout (5 cols) -->
+                    <div class="lg:col-span-5 flex flex-col bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                        
+                        <!-- Customer & Configuration Header -->
+                        <div class="p-4 bg-slate-50 border-b border-slate-200 space-y-3">
+                            <div class="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label class="block text-xs font-semibold text-slate-600 mb-1">Cliente</label>
+                                    <select id="pos-cliente" class="w-full text-xs bg-white border border-slate-200 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-sky-500">
+                                        <!-- JS options -->
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold text-slate-600 mb-1">Método de Pago</label>
+                                    <select id="pos-pago" class="w-full text-xs bg-white border border-slate-200 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-sky-500">
+                                        <!-- JS options -->
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Cart Items Table -->
+                        <div class="flex-1 overflow-y-auto p-4 custom-scrollbar">
+                            <table class="w-full text-left text-xs">
+                                <thead class="text-slate-400 font-semibold border-b border-slate-100 uppercase">
+                                    <tr>
+                                        <th class="pb-2">Producto</th>
+                                        <th class="pb-2 text-center">Cant.</th>
+                                        <th class="pb-2 text-right">Precio</th>
+                                        <th class="pb-2 text-right">Subtotal</th>
+                                        <th class="pb-2 text-center"></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="pos-cart-tbody" class="divide-y divide-slate-100">
+                                    <!-- JS Generated Rows -->
+                                </tbody>
+                            </table>
+                            <div id="pos-empty-cart" class="text-center py-12 text-slate-400">
+                                <i class="ph ph-shopping-bag text-4xl mb-2 inline-block text-slate-300"></i>
+                                <p class="text-xs">El carrito está vacío</p>
+                            </div>
+                        </div>
+
+                        <!-- Calculation & Checkout Footer -->
+                        <div class="p-4 bg-slate-50 border-t border-slate-200 space-y-3">
+                            <div class="space-y-1.5 text-xs">
+                                <div class="flex justify-between text-slate-600">
+                                    <span>Subtotal:</span>
+                                    <span id="pos-subtotal" class="font-medium">$0.00</span>
+                                </div>
+                                <div class="flex justify-between text-slate-600">
+                                    <span>IVA (16%):</span>
+                                    <span id="pos-iva" class="font-medium">$0.00</span>
+                                </div>
+                                <div class="flex justify-between text-slate-900 text-base font-bold pt-2 border-t border-slate-200">
+                                    <span>Total:</span>
+                                    <span id="pos-total" class="text-sky-600">$0.00</span>
+                                </div>
+                            </div>
+
+                            <button onclick="procesarVenta()" class="w-full py-3 bg-sky-600 hover:bg-sky-700 text-white font-bold rounded-xl shadow-md transition-all flex items-center justify-center space-x-2 active:scale-[0.99]">
+                                <i class="ph ph-check-circle text-lg"></i>
+                                <span>Procesar y Confirmar Venta</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- TAB 2: CONTROL DE INVENTARIO Y ENTRADAS -->
+            <section id="tab-inventario" class="tab-content hidden space-y-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h2 class="text-xl font-bold text-slate-800">EntradaInventarioFrame - Control de Inventario</h2>
+                        <p class="text-xs text-slate-500">Registro transaccional de abastecimiento y estado del stock</p>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <!-- Formulario de Entrada de Mercancía -->
+                    <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 space-y-4">
+                        <h3 class="font-bold text-sm text-slate-800 flex items-center gap-2 border-b border-slate-100 pb-3">
+                            <i class="ph ph-arrow-circle-down text-sky-600 text-lg"></i>
+                            Registrar Entrada de Mercancía
+                        </h3>
+                        <form id="form-entrada" onsubmit="registrarEntradaInventario(event)" class="space-y-4">
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 mb-1">Producto a Abastecer</label>
+                                <select id="entrada-producto" required class="w-full text-xs bg-slate-50 border border-slate-200 rounded-lg p-2.5 focus:ring-2 focus:ring-sky-500">
+                                    <!-- JS Options -->
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 mb-1">Proveedor Responsable</label>
+                                <select id="entrada-proveedor" required class="w-full text-xs bg-slate-50 border border-slate-200 rounded-lg p-2.5 focus:ring-2 focus:ring-sky-500">
+                                    <!-- JS Options -->
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 mb-1">Cantidad a Ingresar</label>
+                                <input type="number" id="entrada-cantidad" min="1" value="1" required class="w-full text-xs bg-slate-50 border border-slate-200 rounded-lg p-2.5 focus:ring-2 focus:ring-sky-500" placeholder="Ingrese cantidad > 0">
+                                <p class="text-[10px] text-slate-400 mt-1">Regla de negocio: La cantidad debe ser estrictamente &gt; 0</p>
+                            </div>
+
+                            <button type="submit" class="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg text-xs shadow-sm transition-all flex items-center justify-center space-x-2">
+                                <i class="ph ph-plus-circle text-base"></i>
+                                <span>Guardar Entrada Atómica</span>
+                            </button>
+                        </form>
+                    </div>
+
+                    <!-- Tabla de Stock e Indicadores Visuales -->
+                    <div class="lg:col-span-2 bg-white p-5 rounded-xl shadow-sm border border-slate-200 space-y-4">
+                        <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                            <h3 class="font-bold text-sm text-slate-800">Estado General de Stock en Almacén</h3>
+                            <span class="text-xs text-slate-400">Umbral Crítico: &le; 5 unidades</span>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left text-xs">
+                                <thead class="bg-slate-50 text-slate-500 font-semibold border-b border-slate-200">
+                                    <tr>
+                                        <th class="p-3">Código</th>
+                                        <th class="p-3">Producto</th>
+                                        <th class="p-3">Categoría</th>
+                                        <th class="p-3 text-center">Stock Actual</th>
+                                        <th class="p-3 text-center">Estado</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="inventario-tbody" class="divide-y divide-slate-100">
+                                    <!-- JS Rows -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- TAB 3: GESTIÓN DE PRODUCTOS (CRUD) -->
+            <section id="tab-productos" class="tab-content hidden space-y-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h2 class="text-xl font-bold text-slate-800">ProductoFrame - Mantenimiento de Productos</h2>
+                        <p class="text-xs text-slate-500">Gestión de catálogo con validación de precios y existencias no negativas</p>
+                    </div>
+                    <button onclick="abrirModalProducto()" class="px-4 py-2 bg-sky-600 hover:bg-sky-700 text-white font-bold rounded-lg text-xs shadow-sm flex items-center space-x-2">
+                        <i class="ph ph-plus text-base"></i>
+                        <span>Nuevo Producto</span>
+                    </button>
+                </div>
+
+                <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-xs">
+                            <thead class="bg-slate-50 text-slate-500 font-semibold border-b border-slate-200 uppercase">
+                                <tr>
+                                    <th class="p-3">Código de Barras</th>
+                                    <th class="p-3">Nombre</th>
+                                    <th class="p-3">Categoría</th>
+                                    <th class="p-3 text-right">Precio Compra</th>
+                                    <th class="p-3 text-right">Precio Venta</th>
+                                    <th class="p-3 text-center">Stock</th>
+                                    <th class="p-3 text-center">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="productos-crud-tbody" class="divide-y divide-slate-100">
+                                <!-- JS Generated -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- TAB 4: ARQUEO DE CAJA -->
+            <section id="tab-arqueo" class="tab-content hidden space-y-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h2 class="text-xl font-bold text-slate-800">ArqueoFrame - Control e Histórico de Caja</h2>
+                        <p class="text-xs text-slate-500">Apertura, cierre de turnos y balance de ventas acumuladas</p>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <!-- Caja Status Card -->
+                    <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 space-y-4">
+                        <h3 class="font-bold text-sm text-slate-800 border-b border-slate-100 pb-2">Estado del Turno Actual</h3>
+                        <div class="space-y-3">
+                            <div class="flex justify-between items-center">
+                                <span class="text-xs text-slate-500">Monto Inicial:</span>
+                                <span id="caja-monto-inicial" class="font-semibold text-slate-700">$0.00</span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="text-xs text-slate-500">Ventas Registradas:</span>
+                                <span id="caja-ventas-turno" class="font-semibold text-emerald-600">$0.00</span>
+                            </div>
+                            <div class="flex justify-between items-center pt-2 border-t border-slate-100 text-sm font-bold">
+                                <span>Saldo Total Calculado:</span>
+                                <span id="caja-saldo-total" class="text-sky-600">$0.00</span>
+                            </div>
+                        </div>
+
+                        <div id="caja-actions" class="pt-2">
+                            <!-- JS Inject Buttons -->
+                        </div>
+                    </div>
+
+                    <!-- Arqueo History Table -->
+                    <div class="md:col-span-2 bg-white p-5 rounded-xl shadow-sm border border-slate-200 space-y-4">
+                        <h3 class="font-bold text-sm text-slate-800 border-b border-slate-100 pb-2">Histórico de Registros de Arqueo (arqueos_caja)</h3>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left text-xs">
+                                <thead class="bg-slate-50 text-slate-500 font-semibold border-b border-slate-200">
+                                    <tr>
+                                        <th class="p-3">ID</th>
+                                        <th class="p-3">Apertura</th>
+                                        <th class="p-3 text-right">Monto Inicial</th>
+                                        <th class="p-3">Cierre</th>
+                                        <th class="p-3 text-right">Monto Final</th>
+                                        <th class="p-3">Usuario</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="arqueo-history-tbody" class="divide-y divide-slate-100">
+                                    <!-- JS Generated -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- TAB 5: REPORTES Y AUDITORÍA -->
+            <section id="tab-reportes" class="tab-content hidden space-y-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h2 class="text-xl font-bold text-slate-800">Reportes de Auditoría e Historial</h2>
+                        <p class="text-xs text-slate-500">Métricas operacionales y consulta de tablas de persistencia relacional</p>
+                    </div>
+                </div>
+
+                <!-- KPI Metric Cards -->
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex items-center space-x-4">
+                        <div class="p-3 rounded-lg bg-sky-50 text-sky-600">
+                            <i class="ph ph-receipt text-2xl"></i>
+                        </div>
+                        <div>
+                            <p class="text-xs text-slate-400 font-medium">Ventas Totales</p>
+                            <h4 id="kpi-total-ventas" class="text-lg font-bold text-slate-800">$0.00</h4>
+                        </div>
+                    </div>
+                    <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex items-center space-x-4">
+                        <div class="p-3 rounded-lg bg-amber-50 text-amber-600">
+                            <i class="ph ph-warning-diamond text-2xl"></i>
+                        </div>
+                        <div>
+                            <p class="text-xs text-slate-400 font-medium">Productos Bajo Stock</p>
+                            <h4 id="kpi-bajo-stock" class="text-lg font-bold text-slate-800">0</h4>
+                        </div>
+                    </div>
+                    <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex items-center space-x-4">
+                        <div class="p-3 rounded-lg bg-emerald-50 text-emerald-600">
+                            <i class="ph ph-arrows-down-up text-2xl"></i>
+                        </div>
+                        <div>
+                            <p class="text-xs text-slate-400 font-medium">Transacciones Ventas</p>
+                            <h4 id="kpi-total-transacciones" class="text-lg font-bold text-slate-800">0</h4>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Detailed Audit Table -->
+                <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 space-y-4">
+                    <h3 class="font-bold text-sm text-slate-800 border-b border-slate-100 pb-2">Registro Detallado de Ventas (ventas & detalle_ventas)</h3>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-xs">
+                            <thead class="bg-slate-50 text-slate-500 font-semibold border-b border-slate-200">
+                                <tr>
+                                    <th class="p-3">ID Venta</th>
+                                    <th class="p-3">Fecha / Hora</th>
+                                    <th class="p-3">Cliente</th>
+                                    <th class="p-3">Método Pago</th>
+                                    <th class="p-3 text-right">Monto Total</th>
+                                    <th class="p-3 text-center">Estado ACID</th>
+                                </tr>
+                            </thead>
+                            <tbody id="reporte-ventas-tbody" class="divide-y divide-slate-100">
+                                <!-- JS Generated -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- MODAL: PRODUCT FORM (CREATION / EDITING) -->
+    <div id="modal-producto" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden">
+        <div class="bg-white rounded-xl shadow-xl border border-slate-200 max-w-md w-full p-6 space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                <h3 id="modal-producto-titulo" class="font-bold text-sm text-slate-800">Nuevo Producto</h3>
+                <button onclick="cerrarModalProducto()" class="text-slate-400 hover:text-slate-600">
+                    <i class="ph ph-x text-lg"></i>
+                </button>
+            </div>
+            
+            <form id="form-producto" onsubmit="guardarProducto(event)" class="space-y-3">
+                <input type="hidden" id="prod-id">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Código de Barras</label>
+                    <input type="text" id="prod-codigo" required class="w-full text-xs bg-slate-50 border border-slate-200 rounded-lg p-2.5 focus:ring-2 focus:ring-sky-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Nombre del Producto</label>
+                    <input type="text" id="prod-nombre" required class="w-full text-xs bg-slate-50 border border-slate-200 rounded-lg p-2.5 focus:ring-2 focus:ring-sky-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Categoría</label>
+                    <select id="prod-categoria" required class="w-full text-xs bg-slate-50 border border-slate-200 rounded-lg p-2.5 focus:ring-2 focus:ring-sky-500">
+                        <!-- JS Categories -->
+                    </select>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Precio Compra ($)</label>
+                        <input type="number" step="0.01" min="0" id="prod-precio-compra" required class="w-full text-xs bg-slate-50 border border-slate-200 rounded-lg p-2.5 focus:ring-2 focus:ring-sky-500" placeholder=">= 0">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Precio Venta ($)</label>
+                        <input type="number" step="0.01" min="0" id="prod-precio-venta" required class="w-full text-xs bg-slate-50 border border-slate-200 rounded-lg p-2.5 focus:ring-2 focus:ring-sky-500" placeholder=">= 0">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Stock Inicial</label>
+                    <input type="number" min="0" id="prod-stock" required class="w-full text-xs bg-slate-50 border border-slate-200 rounded-lg p-2.5 focus:ring-2 focus:ring-sky-500" placeholder=">= 0">
+                </div>
+
+                <div class="pt-3 flex justify-end space-x-2">
+                    <button type="button" onclick="cerrarModalProducto()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-lg text-xs">Cancelar</button>
+                    <button type="submit" class="px-4 py-2 bg-sky-600 hover:bg-sky-700 text-white font-semibold rounded-lg text-xs">Guardar Producto</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- JAVASCRIPT APPLICATION LOGIC -->
+    <script>
+        // ==========================================
+        // STATE MANAGEMENT (com.trade domain models)
+        // ==========================================
+        const state = {
+            categorias: [
+                { id: 1, nombre: "Bebidas" },
+                { id: 2, nombre: "Alimentos" },
+                { id: 3, nombre: "Limpieza" },
+                { id: 4, nombre: "Electrónica" }
+            ],
+            proveedores: [
+                { id: 1, nombre: "Distribuidora Central S.A." },
+                { id: 2, nombre: "Comercializadora del Norte" },
+                { id: 3, nombre: "Importaciones Globales" }
+            ],
+            clientes: [
+                { id: 1, nombre: "Cliente General / Público" },
+                { id: 2, nombre: "Juan Pérez (DNI: 08011995)" },
+                { id: 3, nombre: "Empresa Los Pinos S.R.L." }
+            ],
+            metodosPago: [
+                { id: 1, metodo: "Efectivo" },
+                { id: 2, metodo: "Tarjeta de Crédito / Débito" },
+                { id: 3, metodo: "Transferencia Bancaria" }
+            ],
+            productos: [
+                { id: 1, codigo_barras: "75010001", nombre: "Café Gourmet 500g", id_categoria: 2, precio_compra: 4.50, precio_venta: 7.50, stock_actual: 15 },
+                { id: 2, codigo_barras: "75010002", nombre: "Agua Mineral 1.5L", id_categoria: 1, precio_compra: 0.50, precio_venta: 1.20, stock_actual: 4 }, // Stock bajo
+                { id: 3, codigo_barras: "75010003", nombre: "Detergente Multiusos 1L", id_categoria: 3, precio_compra: 2.10, precio_venta: 3.80, stock_actual: 2 }, // Stock bajo
+                { id: 4, codigo_barras: "75010004", nombre: "Audífonos Bluetooth", id_categoria: 4, precio_compra: 12.00, precio_venta: 24.99, stock_actual: 8 },
+                { id: 5, codigo_barras: "75010005", nombre: "Refresco de Cola 600ml", id_categoria: 1, precio_compra: 0.80, precio_venta: 1.50, stock_actual: 0 }  // Sin stock
+            ],
+            cart: [],
+            caja: {
+                abierta: false,
+                montoInicial: 0,
+                ventasTurno: 0,
+                fechaApertura: null
+            },
+            arqueos: [],
+            ventas: [],
+            entradas: []
+        };
+
+        // ==========================================
+        // INITIALIZATION
+        // ==========================================
+        window.addEventListener('DOMContentLoaded', () => {
+            initSelects();
+            renderPosProducts();
+            renderInventarioTable();
+            renderProductosCRUD();
+            renderArqueoUI();
+            renderReportes();
+        });
+
+        // ==========================================
+        // UI HELPERS & NOTIFICATIONS
+        // ==========================================
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            
+            const styles = {
+                success: 'bg-emerald-800 border-emerald-600 text-white',
+                error: 'bg-red-900 border-red-700 text-white',
+                warning: 'bg-amber-800 border-amber-600 text-white',
+                info: 'bg-slate-800 border-slate-700 text-white'
+            };
+
+            const icons = {
+                success: 'ph-check-circle',
+                error: 'ph-warning-circle',
+                warning: 'ph-warning',
+                info: 'ph-info'
+            };
+
+            toast.className = `p-4 rounded-xl border shadow-xl flex items-center space-x-3 text-xs pointer-events-auto transition-all duration-300 transform translate-y-2 opacity-0 ${styles[type]}`;
+            toast.innerHTML = `
+                <i class="ph ${icons[type]} text-lg flex-shrink-0"></i>
+                <div class="flex-1 font-medium">${message}</div>
+                <button onclick="this.parentElement.remove()" class="opacity-70 hover:opacity-100">
+                    <i class="ph ph-x text-sm"></i>
+                </button>
+            `;
+
+            container.appendChild(toast);
+            setTimeout(() => {
+                toast.classList.remove('translate-y-2', 'opacity-0');
+            }, 10);
+
+            setTimeout(() => {
+                if (toast.parentElement) {
+                    toast.classList.add('opacity-0');
+                    setTimeout(() => toast.remove(), 300);
+                }
+            }, 4000);
+        }
+
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('.nav-btn').forEach(el => {
+                el.classList.remove('bg-sky-600', 'text-white', 'shadow-sm');
+                el.classList.add('hover:bg-slate-700/60', 'hover:text-white');
+            });
+
+            document.getElementById(`tab-${tabId}`).classList.remove('hidden');
+            const activeBtn = document.getElementById(`nav-${tabId}`);
+            activeBtn.classList.add('bg-sky-600', 'text-white', 'shadow-sm');
+            activeBtn.classList.remove('hover:bg-slate-700/60', 'hover:text-white');
+        }
+
+        function initSelects() {
+            // Category POS Filter
+            const posCat = document.getElementById('pos-category-filter');
+            const prodCat = document.getElementById('prod-categoria');
+            state.categorias.forEach(c => {
+                posCat.innerHTML += `<option value="${c.id}">${c.nombre}</option>`;
+                prodCat.innerHTML += `<option value="${c.id}">${c.nombre}</option>`;
+            });
+
+            // Cliente POS
+            const posCli = document.getElementById('pos-cliente');
+            state.clientes.forEach(c => {
+                posCli.innerHTML += `<option value="${c.id}">${c.nombre}</option>`;
+            });
+
+            // Metodo Pago POS
+            const posPago = document.getElementById('pos-pago');
+            state.metodosPago.forEach(m => {
+                posPago.innerHTML += `<option value="${m.id}">${m.metodo}</option>`;
+            });
+
+            // Entrada Producto & Proveedor
+            updateEntradaSelects();
+        }
+
+        function updateEntradaSelects() {
+            const entProd = document.getElementById('entrada-producto');
+            const entProv = document.getElementById('entrada-proveedor');
+            
+            entProd.innerHTML = '';
+            state.productos.forEach(p => {
+                entProd.innerHTML += `<option value="${p.id}">${p.nombre} (Stock actual: ${p.stock_actual})</option>`;
+            });
+
+            entProv.innerHTML = '';
+            state.proveedores.forEach(pr => {
+                entProv.innerHTML += `<option value="${pr.id}">${pr.nombre}</option>`;
+            });
+        }
+
+        // ==========================================
+        // MODULE 1: POS / PUNTO DE VENTA (VentaFrame)
+        // ==========================================
+        function renderPosProducts() {
+            const grid = document.getElementById('pos-product-grid');
+            const search = document.getElementById('pos-search').value.toLowerCase();
+            const catFilter = document.getElementById('pos-category-filter').value;
+
+            grid.innerHTML = '';
+
+            const filtered = state.productos.filter(p => {
+                const matchSearch = p.nombre.toLowerCase().includes(search) || p.codigo_barras.includes(search);
+                const matchCat = catFilter === 'ALL' || p.id_categoria == catFilter;
+                return matchSearch && matchCat;
+            });
+
+            filtered.forEach(p => {
+                const outOfStock = p.stock_actual <= 0;
+                const lowStock = p.stock_actual > 0 && p.stock_actual <= 5;
+
+                let stockBadgeClass = 'bg-emerald-50 text-emerald-700 border-emerald-200';
+                let stockText = `${p.stock_actual} en stock`;
+                
+                if (outOfStock) {
+                    stockBadgeClass = 'bg-red-50 text-red-700 border-red-200';
+                    stockText = 'Sin Stock (0)';
+                } else if (lowStock) {
+                    stockBadgeClass = 'bg-amber-50 text-amber-700 border-amber-200';
+                    stockText = `Bajo Stock (${p.stock_actual})`;
+                }
+
+                grid.innerHTML += `
+                    <div class="border border-slate-200 rounded-xl p-3 flex flex-col justify-between hover:shadow-md transition-all ${outOfStock ? 'opacity-60 bg-slate-50' : 'bg-white'}">
+                        <div>
+                            <div class="flex items-center justify-between mb-1">
+                                <span class="text-[10px] font-mono text-slate-400">${p.codigo_barras}</span>
+                                <span class="text-[10px] px-2 py-0.5 rounded-full border font-semibold ${stockBadgeClass}">${stockText}</span>
+                            </div>
+                            <h4 class="font-bold text-xs text-slate-800 line-clamp-2">${p.nombre}</h4>
+                        </div>
+
+                        <div class="mt-3 flex items-center justify-between pt-2 border-t border-slate-100">
+                            <span class="font-bold text-sm text-slate-900">$${p.precio_venta.toFixed(2)}</span>
+                            <button onclick="addToCart(${p.id})" ${outOfStock ? 'disabled' : ''} class="px-2.5 py-1.5 bg-sky-600 hover:bg-sky-700 disabled:bg-slate-300 text-white text-xs font-semibold rounded-lg shadow-sm transition-all flex items-center space-x-1">
+                                <i class="ph ph-plus text-sm"></i>
+                                <span>Agregar</span>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        function addToCart(productId) {
+            const product = state.productos.find(p => p.id === productId);
+            if (!product) return;
+
+            // Strict Stock Verification
+            if (product.stock_actual <= 0) {
+                showToast(`Validación DAO: El producto '${product.nombre}' no tiene stock disponible.`, 'error');
+                return;
+            }
+
+            const cartItem = state.cart.find(item => item.id_producto === productId);
+            if (cartItem) {
+                if (cartItem.cantidad + 1 > product.stock_actual) {
+                    showToast(`REGLA DE NEGOCIO: No se puede agregar más de la existencia actual (${product.stock_actual}).`, 'warning');
+                    return;
+                }
+                cartItem.cantidad++;
+            } else {
+                state.cart.push({
+                    id_producto: product.id,
+                    nombre: product.nombre,
+                    precio_unitario: product.precio_venta,
+                    cantidad: 1,
+                    stock_max: product.stock_actual
+                });
+            }
+
+            renderCart();
+        }
+
+        function updateCartQuantity(productId, newQty) {
+            const qty = parseInt(newQty);
+            const item = state.cart.find(i => i.id_producto === productId);
+            if (!item) return;
+
+            // RULE VALIDATION: No <= 0 or Negative quantities
+            if (isNaN(qty) || qty <= 0) {
+                showToast(`REGLA DE NEGOCIO: La cantidad debe ser un número entero mayor a cero.`, 'error');
+                renderCart(); // Reset view
+                return;
+            }
+
+            // RULE VALIDATION: Cannot exceed stock_actual
+            if (qty > item.stock_max) {
+                showToast(`STOCK INSUFICIENTE: Stock máximo disponible para '${item.nombre}' es ${item.stock_max}.`, 'error');
+                renderCart(); // Reset view
+                return;
+            }
+
+            item.cantidad = qty;
+            renderCart();
+        }
+
+        function removeFromCart(productId) {
+            state.cart = state.cart.filter(i => i.id_producto !== productId);
+            renderCart();
+        }
+
+        function renderCart() {
+            const tbody = document.getElementById('pos-cart-tbody');
+            const emptyState = document.getElementById('pos-empty-cart');
+            tbody.innerHTML = '';
+
+            if (state.cart.length === 0) {
+                emptyState.classList.remove('hidden');
+            } else {
+                emptyState.classList.add('hidden');
+            }
+
+            let subtotal = 0;
+
+            state.cart.forEach(item => {
+                const itemSubtotal = item.precio_unitario * item.cantidad;
+                subtotal += itemSubtotal;
+
+                tbody.innerHTML += `
+                    <tr>
+                        <td class="py-2.5 font-medium text-slate-800">${item.nombre}</td>
+                        <td class="py-2.5 text-center">
+                            <input type="number" min="1" max="${item.stock_max}" value="${item.cantidad}" onchange="updateCartQuantity(${item.id_producto}, this.value)" class="w-12 text-center bg-slate-100 border border-slate-200 rounded p-1 font-bold text-slate-700">
+                        </td>
+                        <td class="py-2.5 text-right font-medium text-slate-600">$${item.precio_unitario.toFixed(2)}</td>
+                        <td class="py-2.5 text-right font-bold text-slate-800">$${itemSubtotal.toFixed(2)}</td>
+                        <td class="py-2.5 text-center">
+                            <button onclick="removeFromCart(${item.id_producto})" class="text-slate-400 hover:text-red-600 p-1">
+                                <i class="ph ph-trash text-sm"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            });
+
+            const iva = subtotal * 0.16;
+            const total = subtotal + iva;
+
+            document.getElementById('pos-subtotal').innerText = `$${subtotal.toFixed(2)}`;
+            document.getElementById('pos-iva').innerText = `$${iva.toFixed(2)}`;
+            document.getElementById('pos-total').innerText = `$${total.toFixed(2)}`;
+        }
+
+        function procesarVenta() {
+            if (!state.caja.abierta) {
+                showToast('REGLA DE CAJA: Debe realizar el Arqueo de Apertura de Caja antes de facturar ventas.', 'warning');
+                switchTab('arqueo');
+                return;
+            }
+
+            if (state.cart.length === 0) {
+                showToast('El carrito de ventas se encuentra vacío.', 'error');
+                return;
+            }
+
+            // ATOMIC TRANSACTION SIMULATION (ACID VentaDAO)
+            try {
+                // 1. Verify Stock for all items again before commit
+                state.cart.forEach(cartItem => {
+                    const prod = state.productos.find(p => p.id === cartItem.id_producto);
+                    if (!prod || prod.stock_actual < cartItem.cantidad) {
+                        throw new Error(`Rollback en VentaDAO: Stock cambió durante la transacción para '${cartItem.nombre}'.`);
+                    }
+                });
+
+                // 2. Commit transaction: Decrement stock
+                state.cart.forEach(cartItem => {
+                    const prod = state.productos.find(p => p.id === cartItem.id_producto);
+                    prod.stock_actual -= cartItem.cantidad;
+                });
+
+                // 3. Register Sale Header & Details
+                const subtotal = state.cart.reduce((acc, i) => acc + (i.precio_unitario * i.cantidad), 0);
+                const total = subtotal * 1.16;
+
+                const nuevaVenta = {
+                    id: state.ventas.length + 1001,
+                    fecha: new Date().toLocaleString(),
+                    cliente_id: parseInt(document.getElementById('pos-cliente').value),
+                    pago_id: parseInt(document.getElementById('pos-pago').value),
+                    total: total,
+                    detalles: [...state.cart]
+                };
+
+                state.ventas.unshift(nuevaVenta);
+                state.caja.ventasTurno += total;
+
+                // Reset Cart & Update Views
+                state.cart = [];
+                renderCart();
+                renderPosProducts();
+                renderInventarioTable();
+                renderProductosCRUD();
+                renderArqueoUI();
+                renderReportes();
+                updateEntradaSelects();
+
+                showToast(`Venta #${nuevaVenta.id} procesada con éxito. Inventario actualizado.`, 'success');
+
+            } catch (err) {
+                showToast(err.message, 'error');
+            }
+        }
+
+        // ==========================================
+        // MODULE 2: INVENTARIO & ENTRADAS (EntradaInventarioDAO)
+        // ==========================================
+        function renderInventarioTable() {
+            const tbody = document.getElementById('inventario-tbody');
+            tbody.innerHTML = '';
+
+            state.productos.forEach(p => {
+                const cat = state.categorias.find(c => c.id === p.id_categoria)?.nombre || 'General';
+                let statusBadge = '';
+                
+                if (p.stock_actual <= 0) {
+                    statusBadge = `<span class="px-2.5 py-1 rounded-full bg-red-100 text-red-800 font-bold text-[10px]">Agotado (0)</span>`;
+                } else if (p.stock_actual <= 5) {
+                    statusBadge = `<span class="px-2.5 py-1 rounded-full bg-amber-100 text-amber-800 font-bold text-[10px]">Stock Crítico (${p.stock_actual})</span>`;
+                } else {
+                    statusBadge = `<span class="px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 font-bold text-[10px]">Normal (${p.stock_actual})</span>`;
+                }
+
+                tbody.innerHTML += `
+                    <tr>
+                        <td class="p-3 font-mono text-slate-500">${p.codigo_barras}</td>
+                        <td class="p-3 font-bold text-slate-800">${p.nombre}</td>
+                        <td class="p-3 text-slate-600">${cat}</td>
+                        <td class="p-3 text-center font-bold text-slate-900">${p.stock_actual}</td>
+                        <td class="p-3 text-center">${statusBadge}</td>
+                    </tr>
+                `;
+            });
+        }
+
+        function registrarEntradaInventario(e) {
+            e.preventDefault();
+            const prodId = parseInt(document.getElementById('entrada-producto').value);
+            const provId = parseInt(document.getElementById('entrada-proveedor').value);
+            const cantidad = parseInt(document.getElementById('entrada-cantidad').value);
+
+            // STRICT VALIDATION: Quantity MUST BE > 0
+            if (isNaN(cantidad) || cantidad <= 0) {
+                showToast('REGLA DE NEGOCIO: La cantidad ingresada debe ser estrictamente mayor a cero.', 'error');
+                return;
+            }
+
+            const product = state.productos.find(p => p.id === prodId);
+            if (!product) return;
+
+            // Atomic Increment in Stock
+            product.stock_actual += cantidad;
+
+            // Audit Record
+            state.entradas.unshift({
+                id: state.entradas.length + 1,
+                producto: product.nombre,
+                proveedor_id: provId,
+                cantidad: cantidad,
+                fecha: new Date().toLocaleString()
+            });
+
+            // Update UI
+            document.getElementById('form-entrada').reset();
+            renderInventarioTable();
+            renderPosProducts();
+            renderProductosCRUD();
+            renderReportes();
+            updateEntradaSelects();
+
+            showToast(`Entrada registrada. Se sumaron ${cantidad} unidades a '${product.nombre}'.`, 'success');
+        }
+
+        // ==========================================
+        // MODULE 3: PRODUCTOS CRUD (ProductoDAO)
+        // ==========================================
+        function renderProductosCRUD() {
+            const tbody = document.getElementById('productos-crud-tbody');
+            tbody.innerHTML = '';
+
+            state.productos.forEach(p => {
+                const cat = state.categorias.find(c => c.id === p.id_categoria)?.nombre || 'General';
+
+                tbody.innerHTML += `
+                    <tr>
+                        <td class="p-3 font-mono text-slate-500">${p.codigo_barras}</td>
+                        <td class="p-3 font-bold text-slate-800">${p.nombre}</td>
+                        <td class="p-3 text-slate-600">${cat}</td>
+                        <td class="p-3 text-right text-slate-600">$${p.precio_compra.toFixed(2)}</td>
+                        <td class="p-3 text-right font-bold text-sky-600">$${p.precio_venta.toFixed(2)}</td>
+                        <td class="p-3 text-center font-bold">${p.stock_actual}</td>
+                        <td class="p-3 text-center space-x-1">
+                            <button onclick="editarProducto(${p.id})" class="text-sky-600 hover:text-sky-800 p-1">
+                                <i class="ph ph-pencil-simple text-base"></i>
+                            </button>
+                            <button onclick="eliminarProducto(${p.id})" class="text-red-500 hover:text-red-700 p-1">
+                                <i class="ph ph-trash text-base"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+        function abrirModalProducto() {
+            document.getElementById('form-producto').reset();
+            document.getElementById('prod-id').value = '';
+            document.getElementById('modal-producto-titulo').innerText = 'Nuevo Producto';
+            document.getElementById('modal-producto').classList.remove('hidden');
+        }
+
+        function cerrarModalProducto() {
+            document.getElementById('modal-producto').classList.add('hidden');
+        }
+
+        function editarProducto(id) {
+            const p = state.productos.find(item => item.id === id);
+            if (!p) return;
+
+            document.getElementById('prod-id').value = p.id;
+            document.getElementById('prod-codigo').value = p.codigo_barras;
+            document.getElementById('prod-nombre').value = p.nombre;
+            document.getElementById('prod-categoria').value = p.id_categoria;
+            document.getElementById('prod-precio-compra').value = p.precio_compra;
+            document.getElementById('prod-precio-venta').value = p.precio_venta;
+            document.getElementById('prod-stock').value = p.stock_actual;
+
+            document.getElementById('modal-producto-titulo').innerText = 'Editar Producto';
+            document.getElementById('modal-producto').classList.remove('hidden');
+        }
+
+        function guardarProducto(e) {
+            e.preventDefault();
+            const id = document.getElementById('prod-id').value;
+            const codigo = document.getElementById('prod-codigo').value;
+            const nombre = document.getElementById('prod-nombre').value;
+            const catId = parseInt(document.getElementById('prod-categoria').value);
+            const pCompra = parseFloat(document.getElementById('prod-precio-compra').value);
+            const pVenta = parseFloat(document.getElementById('prod-precio-venta').value);
+            const stock = parseInt(document.getElementById('prod-stock').value);
+
+            // STRICT VALIDATIONS FOR NEGATIVES
+            if (pCompra < 0 || pVenta < 0) {
+                showToast('REGLA DAO: Los precios de compra y venta no pueden ser negativos.', 'error');
+                return;
+            }
+            if (stock < 0) {
+                showToast('REGLA DAO: El stock no puede ser un valor negativo.', 'error');
+                return;
+            }
+
+            if (id) {
+                // Edit existing
+                const p = state.productos.find(item => item.id == id);
+                p.codigo_barras = codigo;
+                p.nombre = nombre;
+                p.id_categoria = catId;
+                p.precio_compra = pCompra;
+                p.precio_venta = pVenta;
+                p.stock_actual = stock;
+                showToast(`Producto '${nombre}' actualizado exitosamente.`, 'success');
+            } else {
+                // New product
+                const nuevo = {
+                    id: Date.now(),
+                    codigo_barras: codigo,
+                    nombre: nombre,
+                    id_categoria: catId,
+                    precio_compra: pCompra,
+                    precio_venta: pVenta,
+                    stock_actual: stock
+                };
+                state.productos.push(nuevo);
+                showToast(`Nuevo producto '${nombre}' creado con éxito.`, 'success');
+            }
+
+            cerrarModalProducto();
+            renderProductosCRUD();
+            renderPosProducts();
+            renderInventarioTable();
+            renderReportes();
+            updateEntradaSelects();
+        }
+
+        function eliminarProducto(id) {
+            if (confirm('¿Está seguro de eliminar este producto del catálogo?')) {
+                state.productos = state.productos.filter(p => p.id !== id);
+                renderProductosCRUD();
+                renderPosProducts();
+                renderInventarioTable();
+                renderReportes();
+                updateEntradaSelects();
+                showToast('Producto eliminado correctamente.', 'info');
+            }
+        }
+
+        // ==========================================
+        // MODULE 4: ARQUEO DE CAJA (ArqueoDAO)
+        // ==========================================
+        function renderArqueoUI() {
+            const badgeText = document.getElementById('status-caja-text');
+            const badge = document.getElementById('status-caja-badge');
+            const actionsDiv = document.getElementById('caja-actions');
+
+            const mInicial = document.getElementById('caja-monto-inicial');
+            const mVentas = document.getElementById('caja-ventas-turno');
+            const mSaldo = document.getElementById('caja-saldo-total');
+
+            mInicial.innerText = `$${state.caja.montoInicial.toFixed(2)}`;
+            mVentas.innerText = `$${state.caja.ventasTurno.toFixed(2)}`;
+            mSaldo.innerText = `$${(state.caja.montoInicial + state.caja.ventasTurno).toFixed(2)}`;
+
+            if (state.caja.abierta) {
+                badgeText.innerText = 'Caja Abierta (En Operación)';
+                badge.className = 'flex items-center space-x-2 bg-emerald-950/80 border border-emerald-800 text-emerald-300 px-3 py-1.5 rounded-full text-xs font-semibold';
+                badge.querySelector('span').className = 'w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse';
+
+                actionsDiv.innerHTML = `
+                    <button onclick="cerrarCaja()" class="w-full py-2.5 bg-red-600 hover:bg-red-700 text-white font-bold rounded-lg text-xs shadow-sm transition-all">
+                        Cerrar Turno de Caja (Arqueo)
+                    </button>
+                `;
+            } else {
+                badgeText.innerText = 'Caja Cerrada';
+                badge.className = 'flex items-center space-x-2 bg-red-950/80 border border-red-800 text-red-300 px-3 py-1.5 rounded-full text-xs font-semibold';
+                badge.querySelector('span').className = 'w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse';
+
+                actionsDiv.innerHTML = `
+                    <button onclick="abrirCajaPrompt()" class="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg text-xs shadow-sm transition-all">
+                        Abrir Caja (Apertura de Turno)
+                    </button>
+                `;
+            }
+
+            // Render Arqueos History
+            const tbody = document.getElementById('arqueo-history-tbody');
+            tbody.innerHTML = '';
+            state.arqueos.forEach(a => {
+                tbody.innerHTML += `
+                    <tr>
+                        <td class="p-3 font-mono font-bold">${a.id}</td>
+                        <td class="p-3">${a.fecha_apertura}</td>
+                        <td class="p-3 text-right font-medium">$${a.monto_inicial.toFixed(2)}</td>
+                        <td class="p-3">${a.fecha_cierre}</td>
+                        <td class="p-3 text-right font-bold text-emerald-600">$${a.monto_final.toFixed(2)}</td>
+                        <td class="p-3">Admin User</td>
+                    </tr>
+                `;
+            });
+        }
+
+        function abrirCajaPrompt() {
+            const val = prompt("Ingrese el monto inicial para la apertura de caja ($):", "100.00");
+            if (val !== null) {
+                const monto = parseFloat(val);
+                if (isNaN(monto) || monto < 0) {
+                    showToast('REGLA DE CAJA: El saldo inicial no puede ser negativo.', 'error');
+                    return;
+                }
+
+                state.caja.abierta = true;
+                state.caja.montoInicial = monto;
+                state.caja.ventasTurno = 0;
+                state.caja.fechaApertura = new Date().toLocaleString();
+
+                renderArqueoUI();
+                showToast(`Caja abierta exitosamente con saldo inicial de $${monto.toFixed(2)}.`, 'success');
+            }
+        }
+
+        function cerrarCaja() {
+            const montoFinal = state.caja.montoInicial + state.caja.ventasTurno;
+            const fechaCierre = new Date().toLocaleString();
+
+            const nuevoArqueo = {
+                id: state.arqueos.length + 1,
+                fecha_apertura: state.caja.fechaApertura,
+                monto_inicial: state.caja.montoInicial,
+                fecha_cierre: fechaCierre,
+                monto_final: montoFinal
+            };
+
+            state.arqueos.unshift(nuevoArqueo);
+
+            state.caja.abierta = false;
+            state.caja.montoInicial = 0;
+            state.caja.ventasTurno = 0;
+            state.caja.fechaApertura = null;
+
+            renderArqueoUI();
+            showToast(`Caja cerrada correctamente. Balance final registrado: $${montoFinal.toFixed(2)}`, 'info');
+        }
+
+        // ==========================================
+        // MODULE 5: REPORTES Y AUDITORÍA
+        // ==========================================
+        function renderReportes() {
+            // KPI Calculations
+            const totalVentasSum = state.ventas.reduce((acc, v) => acc + v.total, 0);
+            const bajoStockCount = state.productos.filter(p => p.stock_actual <= 5).length;
+
+            document.getElementById('kpi-total-ventas').innerText = `$${totalVentasSum.toFixed(2)}`;
+            document.getElementById('kpi-bajo-stock').innerText = bajoStockCount;
+            document.getElementById('kpi-total-transacciones').innerText = state.ventas.length;
+
+            // Audit Sales Table
+            const tbody = document.getElementById('reporte-ventas-tbody');
+            tbody.innerHTML = '';
+
+            state.ventas.forEach(v => {
+                const cliente = state.clientes.find(c => c.id === v.cliente_id)?.nombre || 'General';
+                const pago = state.metodosPago.find(m => m.id === v.pago_id)?.metodo || 'Efectivo';
+
+                tbody.innerHTML += `
+                    <tr>
+                        <td class="p-3 font-mono font-bold text-sky-600">#${v.id}</td>
+                        <td class="p-3 text-slate-500">${v.fecha}</td>
+                        <td class="p-3 font-medium text-slate-800">${cliente}</td>
+                        <td class="p-3 text-slate-600">${pago}</td>
+                        <td class="p-3 text-right font-bold text-slate-900">$${v.total.toFixed(2)}</td>
+                        <td class="p-3 text-center">
+                            <span class="px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 font-semibold text-[10px]">COMMIT ACID</span>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+    </script>
+</body>
+</html>
